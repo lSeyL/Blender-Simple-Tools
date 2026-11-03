@@ -9,14 +9,14 @@ def is_mesh(obj):
     return obj is not None and obj.type == 'MESH' and not obj.get('center_of_mass_ball_marker')
 
 
-class SEILTOOLS_TransformSettings(bpy.types.PropertyGroup):
+class SIMPLETOOLS_TransformSettings(bpy.types.PropertyGroup):
     has_copy: BoolProperty(default=False)
     source_name: StringProperty()
     matrix: FloatVectorProperty(size=16)
 
 
-class SEILTOOLS_OT_copy_transform(bpy.types.Operator):
-    bl_idname = 'seiltools.copy_transform'
+class SIMPLETOOLS_OT_copy_transform(bpy.types.Operator):
+    bl_idname = 'simple_tools.copy_transform'
     bl_label = 'Copy Transform'
     bl_description = 'Store the active mesh world position, rotation and scale for later use'
     bl_options = {'REGISTER', 'UNDO'}
@@ -29,7 +29,7 @@ class SEILTOOLS_OT_copy_transform(bpy.types.Operator):
         context.view_layer.update()
         source = context.active_object
         matrix = source.evaluated_get(context.evaluated_depsgraph_get()).matrix_world.copy()
-        settings = context.scene.seiltools_transform
+        settings = context.scene.simple_tools_transform
         settings.matrix = tuple(value for row in matrix for value in row)
         settings.source_name = source.name
         settings.has_copy = True
@@ -37,15 +37,15 @@ class SEILTOOLS_OT_copy_transform(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SEILTOOLS_OT_apply_transform(bpy.types.Operator):
-    bl_idname = 'seiltools.apply_transform'
+class SIMPLETOOLS_OT_apply_transform(bpy.types.Operator):
+    bl_idname = 'simple_tools.apply_transform'
     bl_label = 'Apply Transform to Selected'
     bl_description = 'Set selected meshes to the saved world position, rotation and scale'
     bl_options = {'REGISTER', 'UNDO'}
 
     @classmethod
     def poll(cls, context):
-        return (context.mode == 'OBJECT' and context.scene.seiltools_transform.has_copy
+        return (context.mode == 'OBJECT' and context.scene.simple_tools_transform.has_copy
                 and any(is_mesh(o) for o in context.selected_objects))
 
     def execute(self, context):
@@ -53,7 +53,7 @@ class SEILTOOLS_OT_apply_transform(bpy.types.Operator):
         if any(not o.is_editable for o in targets):
             self.report({'ERROR'}, 'Selected meshes must be editable local objects')
             return {'CANCELLED'}
-        settings = context.scene.seiltools_transform
+        settings = context.scene.simple_tools_transform
         matrix = Matrix([settings.matrix[i:i + 4] for i in range(0, 16, 4)])
         # Update parents first when both parent and child are targets.
         def depth(obj):
@@ -69,43 +69,43 @@ class SEILTOOLS_OT_apply_transform(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SEILTOOLS_PT_transforms(bpy.types.Panel):
+class SIMPLETOOLS_PT_transforms(bpy.types.Panel):
     bl_label = 'Copy Transform'
-    bl_idname = 'SEILTOOLS_PT_transforms'
+    bl_idname = 'SIMPLETOOLS_PT_transforms'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'SeilTools'
-    bl_parent_id = 'SEILTOOLS_PT_main'
+    bl_category = 'Simple Tools'
+    bl_parent_id = 'SIMPLETOOLS_PT_main'
 
     @classmethod
     def poll(cls, context):
-        return context.scene.seiltools.tool == 'TRANSFORMS'
+        return context.scene.simple_tools.tool == 'TRANSFORMS'
 
     def draw(self, context):
         layout = self.layout
-        settings = context.scene.seiltools_transform
+        settings = context.scene.simple_tools_transform
         layout.label(text='1. Select the source mesh.')
-        layout.operator('seiltools.copy_transform', icon='COPYDOWN')
+        layout.operator('simple_tools.copy_transform', icon='COPYDOWN')
         if settings.has_copy:
             layout.label(text=f'Saved: {settings.source_name}', icon='CHECKMARK')
         layout.separator()
         layout.label(text='2. Select destination mesh(es).')
-        layout.operator('seiltools.apply_transform', icon='PASTEDOWN')
+        layout.operator('simple_tools.apply_transform', icon='PASTEDOWN')
         layout.label(text='Copies position, rotation and scale.')
         layout.label(text='World space. Ctrl+Z to undo.')
 
 
-CLASSES = (SEILTOOLS_TransformSettings, SEILTOOLS_OT_copy_transform,
-           SEILTOOLS_OT_apply_transform, SEILTOOLS_PT_transforms)
+CLASSES = (SIMPLETOOLS_TransformSettings, SIMPLETOOLS_OT_copy_transform,
+           SIMPLETOOLS_OT_apply_transform, SIMPLETOOLS_PT_transforms)
 
 
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.seiltools_transform = bpy.props.PointerProperty(type=SEILTOOLS_TransformSettings)
+    bpy.types.Scene.simple_tools_transform = bpy.props.PointerProperty(type=SIMPLETOOLS_TransformSettings)
 
 
 def unregister():
-    del bpy.types.Scene.seiltools_transform
+    del bpy.types.Scene.simple_tools_transform
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)

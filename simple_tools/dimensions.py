@@ -71,7 +71,7 @@ def draw():
     context = bpy.context
     if not context.region_data or not context.scene:
         return
-    settings = context.scene.seiltools_dimensions
+    settings = context.scene.simple_tools_dimensions
     if not settings.enabled or not context.space_data.overlay.show_overlays:
         return
     obj = context.active_object
@@ -141,7 +141,7 @@ def draw():
         gpu.state.blend_set('NONE')
 
 
-class SeilToolsDimensionsSettings(bpy.types.PropertyGroup):
+class SimpleToolsDimensionsSettings(bpy.types.PropertyGroup):
     enabled: BoolProperty(name="Show Dimensions", default=True, update=redraw)
     show_box: BoolProperty(name="Show Bounding Box", default=True, update=redraw)
     axes: EnumProperty(name="Axes", items=[
@@ -158,16 +158,16 @@ class SeilToolsDimensionsSettings(bpy.types.PropertyGroup):
                               default=(1, 0.7, 0.15, 1), min=0, max=1, update=redraw)
 
 
-class VIEW3D_PT_seiltools_dimensions(bpy.types.Panel):
+class VIEW3D_PT_simple_tools_dimensions(bpy.types.Panel):
     bl_label = "Box Dimensions"
-    bl_idname = "VIEW3D_PT_seiltools_dimensions"
+    bl_idname = "VIEW3D_PT_simple_tools_dimensions"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = 'Dimensions'
 
     def draw(self, context):
         layout = self.layout
-        settings = context.scene.seiltools_dimensions
+        settings = context.scene.simple_tools_dimensions
         layout.prop(settings, 'enabled')
         column = layout.column()
         column.active = settings.enabled
@@ -177,11 +177,11 @@ class VIEW3D_PT_seiltools_dimensions(bpy.types.Panel):
         layout.label(text="Overall size, including modifiers.")
 
 
-CLASSES = (SeilToolsDimensionsSettings, VIEW3D_PT_seiltools_dimensions)
+CLASSES = (SimpleToolsDimensionsSettings, VIEW3D_PT_simple_tools_dimensions)
 
 
 def draw_header(self, context):
-    settings = context.scene.seiltools_dimensions
+    settings = context.scene.simple_tools_dimensions
     self.layout.prop(settings, 'enabled', text="Dimensions", toggle=True)
 
 
@@ -189,7 +189,7 @@ def register():
     global _handler
     for cls in CLASSES:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.seiltools_dimensions = bpy.props.PointerProperty(type=SeilToolsDimensionsSettings)
+    bpy.types.Scene.simple_tools_dimensions = bpy.props.PointerProperty(type=SimpleToolsDimensionsSettings)
     bpy.types.VIEW3D_HT_header.append(draw_header)
     _handler = bpy.types.SpaceView3D.draw_handler_add(draw, (), 'WINDOW', 'POST_PIXEL')
     redraw()
@@ -201,7 +201,7 @@ def unregister():
     if _handler is not None:
         bpy.types.SpaceView3D.draw_handler_remove(_handler, 'WINDOW')
         _handler = None
-    del bpy.types.Scene.seiltools_dimensions
+    del bpy.types.Scene.simple_tools_dimensions
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)
     redraw()

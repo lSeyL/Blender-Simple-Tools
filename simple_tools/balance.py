@@ -15,7 +15,7 @@ import bmesh
 from mathutils import Vector
 from bpy.props import FloatProperty, PointerProperty, StringProperty
 
-TAG = "center_of_seiltools_mass_ball_marker"
+TAG = "center_of_simple_tools_mass_ball_marker"
 
 
 def solid_mass_properties(obj, depsgraph):
@@ -63,15 +63,15 @@ def resize_marker(settings, context):
         marker.scale = (settings.ball_radius,) * 3
 
 
-class SEILCOM_Settings(bpy.types.PropertyGroup):
+class SIMPLECOM_Settings(bpy.types.PropertyGroup):
     ball_radius: FloatProperty(name="Ball Radius", default=0.15, min=0.000001,
                                subtype='DISTANCE', update=resize_marker)
     marker: PointerProperty(type=bpy.types.Object)
     result: StringProperty(default="Select solid meshes, then calculate.")
 
 
-class SEILCOM_OT_calculate(bpy.types.Operator):
-    bl_idname = "object.calculate_seiltools_mass_ball"
+class SIMPLECOM_OT_calculate(bpy.types.Operator):
+    bl_idname = "object.calculate_simple_tools_mass_ball"
     bl_label = "Calculate / Update Center"
     bl_description = "Calculate uniform-density center of selected closed meshes, including modifiers"
     bl_options = {'REGISTER', 'UNDO'}
@@ -91,7 +91,7 @@ class SEILCOM_OT_calculate(bpy.types.Operator):
             return {'CANCELLED'}
         total = math.fsum(v for v, _, _ in solids)
         center = Vector([math.fsum(v * c[i] for v, c, _ in solids) / total for i in range(3)])
-        settings = context.scene.seiltools_mass_ball
+        settings = context.scene.simple_tools_mass_ball
         marker = settings.marker
         if not marker or not marker.get(TAG):
             mesh = bpy.data.meshes.new("Center of Mass Ball")
@@ -122,18 +122,18 @@ class SEILCOM_OT_calculate(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class SEILCOM_PT_panel(bpy.types.Panel):
+class SIMPLECOM_PT_panel(bpy.types.Panel):
     bl_label = "Center of Mass Ball"
-    bl_idname = "SEILCOM_PT_seiltools_mass_ball"
+    bl_idname = "SIMPLECOM_PT_simple_tools_mass_ball"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Balance"
 
     def draw(self, context):
         layout = self.layout
-        settings = context.scene.seiltools_mass_ball
+        settings = context.scene.simple_tools_mass_ball
         layout.label(text="Select the solid parts to balance.")
-        layout.operator(SEILCOM_OT_calculate.bl_idname, icon='SPHERE')
+        layout.operator(SIMPLECOM_OT_calculate.bl_idname, icon='SPHERE')
         layout.prop(settings, "ball_radius")
         layout.label(text=settings.result)
         layout.label(text="Uniform density • closed meshes")
@@ -141,17 +141,17 @@ class SEILCOM_PT_panel(bpy.types.Panel):
         layout.label(text="Overlapping objects count twice.")
 
 
-CLASSES = (SEILCOM_Settings, SEILCOM_OT_calculate, SEILCOM_PT_panel)
+CLASSES = (SIMPLECOM_Settings, SIMPLECOM_OT_calculate, SIMPLECOM_PT_panel)
 
 
 def register():
     for cls in CLASSES:
         bpy.utils.register_class(cls)
-    bpy.types.Scene.seiltools_mass_ball = PointerProperty(type=SEILCOM_Settings)
+    bpy.types.Scene.simple_tools_mass_ball = PointerProperty(type=SIMPLECOM_Settings)
 
 
 def unregister():
-    del bpy.types.Scene.seiltools_mass_ball
+    del bpy.types.Scene.simple_tools_mass_ball
     for cls in reversed(CLASSES):
         bpy.utils.unregister_class(cls)
 
