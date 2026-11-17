@@ -18,6 +18,11 @@ Choose FBX or GLB, set the output directory, and click **Export All** in Object 
 The default `//Exports/` directory is relative to the saved blend file; save first
 or choose an absolute directory.
 
+For FBX, enable **FBX Units Scale** to store scene unit conversion in the FBX
+unit metadata (Blender's Apply Scalings > FBX Units Scale). Unchecked keeps
+All Local scaling. Both use export scale 1.0 with Apply Unit enabled. GLB is
+unaffected.
+
 Enable **Create Collection Folders** to mirror the nested collection hierarchy.
 For example, `Export_Ready_Plugin > Vegetation > Grass` exports into
 `Exports/Vegetation/Grass/`; `Trees` beside `Grass` gets its own folder.

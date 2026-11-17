@@ -46,8 +46,12 @@ def bounds(points):
 with tempfile.TemporaryDirectory() as directory:
     settings = scene.simple_tools_export
     settings.directory = directory
-    for format in ('GLB', 'FBX'):
+    for format, units_scale in (('GLB', False), ('FBX', False), ('FBX', True)):
         settings.format = format
+        settings.fbx_units_scale = units_scale
+        settings.directory = str(Path(directory) / f'{format}_{units_scale}')
+        scene.unit_settings.system = 'METRIC'
+        scene.unit_settings.scale_length = 0.1 if format == 'FBX' else 1.0
         before = (len(bpy.data.objects), len(bpy.data.meshes), len(bpy.data.scenes))
         assert bpy.ops.simple_tools.export_all() == {'FINISHED'}
         assert bpy.ops.simple_tools.export_all() == {'FINISHED'}
@@ -57,8 +61,19 @@ with tempfile.TemporaryDirectory() as directory:
         assert tuple(bpy.context.selected_objects) == selection
         assert bpy.context.view_layer.objects.active == active
         assert bpy.context.scene == scene
-        files = sorted(Path(directory).glob('*.' + format.lower()))
+        files = sorted(Path(settings.directory).glob('*.' + format.lower()))
         assert len(files) == 2, files
+        if format == 'FBX':
+            from io_scene_fbx import parse_fbx
+            tree, _ = parse_fbx.parse(str(files[0]))
+            def unit_factor(element):
+                if element.id == b'P' and element.props[0] == b'UnitScaleFactor':
+                    return element.props[-1]
+                for child in element.elems:
+                    result = unit_factor(child)
+                    if result is not None:
+                        return result
+            assert abs(unit_factor(tree) - (10.0 if units_scale else 1.0)) < 1e-6
         imported_before = set(bpy.data.objects)
         if format == 'GLB':
             bpy.ops.import_scene.gltf(filepath=str(files[0]))

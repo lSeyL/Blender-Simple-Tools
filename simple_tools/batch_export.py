@@ -48,7 +48,7 @@ def export_entries(collection, directory, folders):
         yield from export_entries(child, folder, True)
 
 
-def export_mesh(context, source, depsgraph, scene, filepath, file_format):
+def export_mesh(context, source, depsgraph, scene, filepath, file_format, fbx_units_scale=False):
     mesh = None
     obj = None
     try:
@@ -79,6 +79,8 @@ def export_mesh(context, source, depsgraph, scene, filepath, file_format):
                 result = bpy.ops.export_scene.fbx(
                     filepath=str(filepath), check_existing=False,
                     use_selection=True, object_types={'MESH'},
+                    global_scale=1.0, apply_unit_scale=True,
+                    apply_scale_options='FBX_SCALE_UNITS' if fbx_units_scale else 'FBX_SCALE_NONE',
                     use_mesh_modifiers=False, bake_anim=False,
                     path_mode='COPY', embed_textures=True,
                     axis_forward='-Z', axis_up='Y')
@@ -103,6 +105,9 @@ class SIMPLETOOLS_ExportSettings(bpy.types.PropertyGroup):
         ('GLB', 'GLB', 'Export a binary glTF file per mesh'),
     ], default='FBX')
     directory: StringProperty(name='Output Directory', subtype='DIR_PATH', default='//Exports/')
+    fbx_units_scale: BoolProperty(
+        name='FBX Units Scale', default=False,
+        description='Store scene unit conversion in FBX unit metadata instead of object transforms')
     collection_folders: BoolProperty(
         name='Create Collection Folders', default=False,
         description='Mirror nested collections as folders; meshes linked to multiple collections export in each folder')
@@ -176,7 +181,8 @@ class SIMPLETOOLS_OT_export_all(bpy.types.Operator):
                     # Stage the export so a failed exporter never leaves a partial target.
                     with tempfile.TemporaryDirectory(prefix='.simple_tools_', dir=output_directory) as staging:
                         staged = Path(staging) / target.name
-                        export_mesh(context, source, depsgraph, scene, staged, settings.format)
+                        export_mesh(context, source, depsgraph, scene, staged, settings.format,
+                                    settings.fbx_units_scale)
                         # Exclusive creation also protects against concurrent writers.
                         with target.open('xb') as destination:
                             try:
@@ -220,6 +226,8 @@ class SIMPLETOOLS_PT_batch_export(bpy.types.Panel):
         if bpy.data.collections.get(COLLECTION_NAME) is None:
             layout.operator('simple_tools.create_export_collection', icon='ADD')
         layout.prop(settings, 'format')
+        if settings.format == 'FBX':
+            layout.prop(settings, 'fbx_units_scale')
         layout.prop(settings, 'directory')
         layout.prop(settings, 'collection_folders')
         layout.operator('simple_tools.export_all', icon='EXPORT')

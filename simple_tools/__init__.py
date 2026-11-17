@@ -2,7 +2,7 @@
 bl_info = {
     "name": "SimpleTools",
     "author": "SimpleTools / OpenAI",
-    "version": (1, 3, 1),
+    "version": (1, 3, 2),
     "blender": (4, 0, 0),
     "location": "3D View > Sidebar > SimpleTools",
     "description": "Dimensions, center of mass, transform copying and batch export in one sidebar",
