@@ -1,17 +1,17 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 bl_info = {
-    "name": "Simple Tools",
-    "author": "Simple Tools / OpenAI",
-    "version": (1, 2, 0),
+    "name": "SimpleTools",
+    "author": "SimpleTools / OpenAI",
+    "version": (1, 3, 0),
     "blender": (4, 0, 0),
-    "location": "3D View > Sidebar > Simple Tools",
-    "description": "Dimensions, center of mass and transform copying in one sidebar",
+    "location": "3D View > Sidebar > SimpleTools",
+    "description": "Dimensions, center of mass, transform copying and batch export in one sidebar",
     "category": "3D View",
 }
 
 import bpy
 from bpy.props import EnumProperty, PointerProperty
-from . import dimensions, balance, transforms
+from . import dimensions, balance, transforms, batch_export
 
 
 def redraw(self, context):
@@ -23,15 +23,16 @@ class SIMPLETOOLS_Settings(bpy.types.PropertyGroup):
         ('DIMENSIONS', 'Dimensions', 'Measure the selected object', 'DRIVER_DISTANCE', 0),
         ('BALANCE', 'Center of Mass', 'Calculate the center-of-mass ball', 'SPHERE', 1),
         ('TRANSFORMS', 'Copy Transform', 'Copy and paste mesh transforms', 'OBJECT_ORIGIN', 2),
+        ('EXPORT', 'Batch Export', 'Export meshes relative to their origins', 'EXPORT', 3),
     ], default='DIMENSIONS', update=redraw)
 
 
 class SIMPLETOOLS_PT_main(bpy.types.Panel):
-    bl_label = "Simple Tools"
+    bl_label = "SimpleTools"
     bl_idname = "SIMPLETOOLS_PT_main"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Simple Tools'
+    bl_category = 'SimpleTools'
 
     def draw(self, context):
         column = self.layout.column(align=True)
@@ -49,7 +50,7 @@ def balance_poll(cls, context):
 def configure_panels():
     for panel, poll in ((dimensions.VIEW3D_PT_simple_tools_dimensions, dimensions_poll),
                         (balance.SIMPLECOM_PT_panel, balance_poll)):
-        panel.bl_category = 'Simple Tools'
+        panel.bl_category = 'SimpleTools'
         panel.bl_parent_id = SIMPLETOOLS_PT_main.bl_idname
         panel.poll = classmethod(poll)
 
@@ -62,9 +63,11 @@ def register():
     dimensions.register()
     balance.register()
     transforms.register()
+    batch_export.register()
 
 
 def unregister():
+    batch_export.unregister()
     transforms.unregister()
     balance.unregister()
     dimensions.unregister()

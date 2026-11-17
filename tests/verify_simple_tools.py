@@ -62,4 +62,4 @@ for filename, module, substitutions in [
 simple_tools.unregister()
 simple_tools.register()
 simple_tools.unregister()
-print('PASS: Simple Tools tab switching, bundled tool regressions, clean re-registration')
+print('PASS: SimpleTools tab switching, bundled tool regressions, clean re-registration')

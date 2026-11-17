@@ -74,7 +74,7 @@ class SIMPLETOOLS_PT_transforms(bpy.types.Panel):
     bl_idname = 'SIMPLETOOLS_PT_transforms'
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = 'Simple Tools'
+    bl_category = 'SimpleTools'
     bl_parent_id = 'SIMPLETOOLS_PT_main'
 
     @classmethod
