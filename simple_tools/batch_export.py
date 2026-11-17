@@ -6,7 +6,7 @@ import re
 import tempfile
 
 import bpy
-from bpy.props import EnumProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, StringProperty
 
 COLLECTION_NAME = 'Export_Ready_Plugin'
 
@@ -26,6 +26,26 @@ def output_path(directory, name, extension, reserved):
         index += 1
     reserved.add(candidate.casefold())
     return directory / candidate
+
+
+def export_entries(collection, directory, folders):
+    """Yield direct links per collection path; flat exports stay deduplicated."""
+    if not folders:
+        for obj in sorted(collection.all_objects, key=lambda obj: obj.name):
+            if obj.type == 'MESH':
+                yield obj, directory
+        return
+    for obj in sorted(collection.objects, key=lambda obj: obj.name):
+        if obj.type == 'MESH':
+            yield obj, directory
+    # Allocate sibling folder names independently of filenames. Reuse folders
+    # on subsequent exports, while separating names that sanitize identically.
+    reserved = set()
+    existing = {p.name.casefold(): p for p in directory.iterdir()} if directory.is_dir() else {}
+    for child in sorted(collection.children, key=lambda child: child.name):
+        folder = output_path(directory, child.name, '', reserved)
+        folder = existing.get(folder.name.casefold(), folder)
+        yield from export_entries(child, folder, True)
 
 
 def export_mesh(context, source, depsgraph, scene, filepath, file_format):
@@ -83,6 +103,9 @@ class SIMPLETOOLS_ExportSettings(bpy.types.PropertyGroup):
         ('GLB', 'GLB', 'Export a binary glTF file per mesh'),
     ], default='FBX')
     directory: StringProperty(name='Output Directory', subtype='DIR_PATH', default='//Exports/')
+    collection_folders: BoolProperty(
+        name='Create Collection Folders', default=False,
+        description='Mirror nested collections as folders; meshes linked to multiple collections export in each folder')
 
 
 class SIMPLETOOLS_OT_create_export_collection(bpy.types.Operator):
@@ -132,19 +155,26 @@ class SIMPLETOOLS_OT_export_all(bpy.types.Operator):
         try:
             directory = Path(bpy.path.abspath(settings.directory)).resolve()
             directory.mkdir(parents=True, exist_ok=True)
-            reserved = {p.name.casefold() for p in directory.iterdir()}
+            entries = list(export_entries(collection, directory, settings.collection_folders))
+            reservations = {}
             context.view_layer.update()
             depsgraph = context.evaluated_depsgraph_get()
             scene = bpy.data.scenes.new('SimpleTools Export Temporary')
             scene.unit_settings.system = context.scene.unit_settings.system
             scene.unit_settings.scale_length = context.scene.unit_settings.scale_length
-            for source in sources:
+            for source, output_directory in entries:
                 try:
                     if source.name not in context.view_layer.objects:
                         raise RuntimeError('Mesh must be included in the active view layer')
-                    target = output_path(directory, source.name, '.' + settings.format.lower(), reserved)
+                    if not output_directory.resolve().is_relative_to(directory):
+                        raise RuntimeError('Collection folder resolves outside the output directory')
+                    output_directory.mkdir(parents=True, exist_ok=True)
+                    if output_directory not in reservations:
+                        reservations[output_directory] = {p.name.casefold() for p in output_directory.iterdir()}
+                    target = output_path(output_directory, source.name, '.' + settings.format.lower(),
+                                         reservations[output_directory])
                     # Stage the export so a failed exporter never leaves a partial target.
-                    with tempfile.TemporaryDirectory(prefix='.simple_tools_', dir=directory) as staging:
+                    with tempfile.TemporaryDirectory(prefix='.simple_tools_', dir=output_directory) as staging:
                         staged = Path(staging) / target.name
                         export_mesh(context, source, depsgraph, scene, staged, settings.format)
                         # Exclusive creation also protects against concurrent writers.
@@ -191,6 +221,7 @@ class SIMPLETOOLS_PT_batch_export(bpy.types.Panel):
             layout.operator('simple_tools.create_export_collection', icon='ADD')
         layout.prop(settings, 'format')
         layout.prop(settings, 'directory')
+        layout.prop(settings, 'collection_folders')
         layout.operator('simple_tools.export_all', icon='EXPORT')
         layout.label(text='Each mesh exports at its own origin.')
         layout.label(text='Existing filenames get numbered suffixes.')

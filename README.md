@@ -18,6 +18,15 @@ Choose FBX or GLB, set the output directory, and click **Export All** in Object 
 The default `//Exports/` directory is relative to the saved blend file; save first
 or choose an absolute directory.
 
+Enable **Create Collection Folders** to mirror the nested collection hierarchy.
+For example, `Export_Ready_Plugin > Vegetation > Grass` exports into
+`Exports/Vegetation/Grass/`; `Trees` beside `Grass` gets its own folder.
+Meshes directly in the export collection stay in the output directory. Folders
+are created as needed for meshes and reused on subsequent exports. A mesh linked
+to multiple collections exports into each collection's folder. With the option
+off (the default), all meshes export once into the output directory as before.
+Folder names are sanitized and conflicting sibling names get numbered suffixes.
+
 Each file uses the object name. Invalid filename characters are replaced, and
 case-insensitive collisions or existing files receive numbered suffixes.
 Meshes export as static evaluated geometry at the current frame, including

@@ -114,7 +114,41 @@ with tempfile.TemporaryDirectory() as directory:
     first = batch_export.output_path(Path(directory), 'A:B', '.glb', reserved)
     second = batch_export.output_path(Path(directory), 'a?b', '.glb', reserved)
     assert first.name == 'A_B.glb' and second.name == 'a_b_001.glb'
+    vegetation = bpy.data.collections.new('Vegetation')
+    grass = bpy.data.collections.new('Grass')
+    trees = bpy.data.collections.new('Trees')
+    collection.children.link(vegetation)
+    vegetation.children.link(grass)
+    vegetation.children.link(trees)
+    collection.objects.unlink(source)
+    grass.objects.link(source)
+    trees.objects.link(source)  # Export each collection link in folder mode.
+    bpy.context.view_layer.update()
+    settings.collection_folders = True
+    settings.format = 'FBX'
+    settings.directory = str(Path(directory) / 'hierarchy')
+    for _ in range(2):
+        assert bpy.ops.simple_tools.export_all() == {'FINISHED'}
+    for name in ('Grass', 'Trees'):
+        folder = Path(settings.directory) / 'Vegetation' / name
+        assert {p.name for p in folder.iterdir()} == {'Pivot_Mesh.fbx', 'Pivot_Mesh_001.fbx'}
+    assert not list(Path(settings.directory).glob('*.fbx'))
+    assert source.matrix_world == original_matrix
+    assert tuple(bpy.context.selected_objects) == selection
+    # Flat mode deduplicates multiply linked meshes and ignores nested paths.
+    entries = list(batch_export.export_entries(collection, Path(directory), False))
+    assert entries == [(source, Path(directory))]
+    collision = bpy.data.collections.new('Gras:s')
+    collision2 = bpy.data.collections.new('Gras?s')
+    vegetation.children.link(collision)
+    vegetation.children.link(collision2)
+    collision.objects.link(source)
+    collision2.objects.link(source)
+    folders = [folder.name for obj, folder in
+               batch_export.export_entries(collection, Path(directory), True)]
+    assert 'Gras_s' in folders and 'Gras_s_001' in folders, folders
 simple_tools.unregister()
 simple_tools.register()
 simple_tools.unregister()
 print('PASS: FBX/GLB round trips, pivot, parent shear, mirrored scale, modifiers, UV/materials, collisions, cleanup and unchanged source')
+print('PASS: collection folders, repeated exports, multiple collection links, flat deduplication and sanitized folder collisions')
